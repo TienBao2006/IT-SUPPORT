@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - IT Support System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/login.css">
+</head>
+<body>
+
+<!-- Ambient Animated Background -->
+<div class="bg-mesh">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+</div>
+
+<div class="wrap">
+    <div class="brand">
+        <div class="brand-icon">⚡</div>
+        <h1>IT <span>Support</span></h1>
+        <p>Hệ thống hỗ trợ kỹ thuật số thông minh</p>
+    </div>
+
+    <div class="card">
+        <div class="form-group">
+            <label for="email">Email</label>
+            <div class="input-wrap">
+                <input type="email" id="email" placeholder="name@company.com" autocomplete="email" required>
+                <span class="input-icon">✉️</span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="password">Mật khẩu</label>
+            <div class="input-wrap">
+                <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" required>
+                <span class="input-icon">🔒</span>
+                <button type="button" class="toggle-pw-btn" id="togglePw" onclick="togglePassword()" title="Hiển thị mật khẩu">👁️</button>
+            </div>
+        </div>
+
+        <button class="btn" id="loginBtn" onclick="login()">
+            <span class="btn-spinner" id="btnSpinner"></span>
+            <span id="btnText">Đăng nhập</span>
+            <span>→</span>
+        </button>
+
+        <div class="err" id="errMsg"></div>
+
+        <!-- Quick Demo Accounts for fast testing -->
+        <div class="demo-section">
+            <div class="demo-title">Tài khoản demo dùng thử</div>
+            <div class="demo-chips">
+                <div class="demo-chip admin" onclick="quickFill('admin')">
+                    <span class="role-tag">👑 Admin</span>
+                    <span class="user-hint">admin@system.com</span>
+                </div>
+                <div class="demo-chip staff" onclick="quickFill('staff')">
+                    <span class="role-tag">💼 Nhân viên</span>
+                    <span class="user-hint">nvb@company.com</span>
+                </div>
+                <div class="demo-chip tech" onclick="quickFill('tech')">
+                    <span class="role-tag">🔧 Kỹ thuật</span>
+                    <span class="user-hint">nva@tech.com</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/login.js"></script>
+</body>
+</html>

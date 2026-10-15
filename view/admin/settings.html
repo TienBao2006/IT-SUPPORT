@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Admin - Cài đặt hệ thống</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/shared.css">
+</head>
+<body>
+<aside class="sidebar">
+    <div class="logo">IT <span>Support</span></div>
+    <div class="menu-section">Quản lý</div>
+    <ul class="menu">
+        <li><a href="/admin/index.html"><span class="icon">🏠</span><span>Dashboard</span></a></li>
+        <li><a href="/admin/tickets.html"><span class="icon">🎫</span><span>Ticket</span></a></li>
+        <li><a href="/admin/users.html"><span class="icon">👥</span><span>Người dùng</span></a></li>
+        <li><a href="/admin/reports.html"><span class="icon">📊</span><span>Báo cáo</span></a></li>
+        <li><a href="/admin/notifications.html"><span class="icon">🔔</span><span>Thông báo</span></a></li>
+        <li><a href="/admin/settings.html" class="active"><span class="icon">⚙️</span><span>Cài đặt</span></a></li>
+    </ul>
+    <div class="user-box">
+        <div class="avatar" id="avBox">AD</div>
+        <div>
+            <div class="user-name" id="uName">Admin</div>
+            <div class="user-role">Quản trị viên</div>
+        </div>
+    </div>
+</aside>
+
+<main class="main">
+    <header class="header">
+        <h2>Cài đặt hệ thống</h2>
+        <div class="header-right">
+            <button class="notif-btn" onclick="location.href='/admin/notifications.html'" title="Thông báo">🔔<span class="notif-badge" style="display:none">0</span></button>
+            <button class="btn btn-secondary btn-sm" onclick="logout()">Đăng xuất</button>
+        </div>
+    </header>
+    <div class="content">
+        <div class="card" style="max-width:540px">
+            <div class="card-header">
+                <h3>Đổi mật khẩu tài khoản</h3>
+            </div>
+            <div class="form-grid" style="grid-template-columns:1fr">
+                <div class="form-group">
+                    <label>Mật khẩu hiện tại *</label>
+                    <input type="password" id="oldPw" placeholder="••••••••">
+                </div>
+                <div class="form-group">
+                    <label>Mật khẩu mới *</label>
+                    <input type="password" id="newPw" placeholder="Tối thiểu 6 ký tự">
+                </div>
+                <div class="form-group">
+                    <label>Xác nhận mật khẩu mới *</label>
+                    <input type="password" id="cfPw" placeholder="••••••••">
+                </div>
+            </div>
+            <div class="form-err" id="pwErr"></div>
+            <div class="form-ok" id="pwOk"></div>
+            <div style="margin-top:20px">
+                <button class="btn btn-primary" onclick="changePw()">💾 Cập nhật mật khẩu</button>
+            </div>
+        </div>
+
+        <div class="card" style="max-width:540px;margin-top:20px">
+            <div class="card-header">
+                <h3>Thông tin phiên làm việc</h3>
+            </div>
+            <div style="font-size:13.5px;color:#475569;line-height:2.2">
+                <div>🌐 <b>Địa chỉ hệ thống:</b> <span id="sUrl" style="font-family:monospace;color:#4f46e5"></span></div>
+                <div>👤 <b>Tài khoản đang đăng nhập:</b> <span id="sEmail" style="font-weight:600"></span></div>
+                <div>🎭 <b>Quyền hạn (Role):</b> <span id="sRole"></span></div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>window.AI_WIDGET_ROLE = 'admin';</script>
+<script src="/shared.js"></script>
+<script src="/ai-widget.js"></script>
+<script>
+(async () => {
+    const u = await checkAuth('admin'); if (!u) return;
+    document.getElementById('uName').textContent = u.full_name;
+    document.getElementById('avBox').textContent = u.full_name.split(' ').slice(-1)[0][0];
+    loadNotifCount();
+    document.getElementById('sUrl').textContent = location.origin;
+    document.getElementById('sEmail').textContent = u.email;
+    document.getElementById('sRole').innerHTML = roleBadge(u.role);
+})();
+
+async function changePw() {
+    const old = document.getElementById('oldPw').value;
+    const nw = document.getElementById('newPw').value;
+    const cf = document.getElementById('cfPw').value;
+    const err = document.getElementById('pwErr'); err.style.display = 'none';
+    const ok = document.getElementById('pwOk'); ok.style.display = 'none';
+    if (!old || !nw) { err.textContent = 'Vui lòng nhập đầy đủ thông tin'; err.style.display = 'block'; return; }
+    if (nw !== cf) { err.textContent = 'Mật khẩu xác nhận không khớp'; err.style.display = 'block'; return; }
+    if (nw.length < 6) { err.textContent = 'Mật khẩu mới phải có ít nhất 6 ký tự'; err.style.display = 'block'; return; }
+    const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldPassword: old, newPassword: nw })
+    }).then(r => r.json()).catch(() => ({ success: false, message: 'Lỗi kết nối máy chủ' }));
+    if (res.success) {
+        ok.textContent = '✅ ' + res.message;
+        ok.style.display = 'block';
+        ['oldPw', 'newPw', 'cfPw'].forEach(id => document.getElementById(id).value = '');
+    } else {
+        err.textContent = '⚠️ ' + res.message;
+        err.style.display = 'block';
+    }
+}
+</script>
+</body>
+</html>

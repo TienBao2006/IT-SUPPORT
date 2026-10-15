@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Admin - Thông báo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/shared.css">
+    <link rel="stylesheet" href="/css/notifications.css">
+</head>
+<body>
+<aside class="sidebar">
+    <div class="logo">IT <span>Support</span></div>
+    <div class="menu-section">Quản lý</div>
+    <ul class="menu">
+        <li><a href="/admin/index.html"><span class="icon">🏠</span><span>Dashboard</span></a></li>
+        <li><a href="/admin/tickets.html"><span class="icon">🎫</span><span>Ticket</span></a></li>
+        <li><a href="/admin/users.html"><span class="icon">👥</span><span>Người dùng</span></a></li>
+        <li><a href="/admin/reports.html"><span class="icon">📊</span><span>Báo cáo</span></a></li>
+        <li><a href="/admin/notifications.html" class="active"><span class="icon">🔔</span><span>Thông báo</span></a></li>
+    </ul>
+    <div class="user-box">
+        <div class="avatar" id="avBox">AD</div>
+        <div>
+            <div class="user-name" id="uName">Admin</div>
+            <div class="user-role">Quản trị viên</div>
+        </div>
+    </div>
+</aside>
+
+<main class="main">
+    <header class="header">
+        <h2>Thông báo hệ thống</h2>
+        <div class="header-right">
+            <button class="notif-btn" title="Thông báo">🔔<span class="notif-badge" style="display:none">0</span></button>
+            <button class="btn btn-secondary btn-sm" onclick="markAll()">✓ Đánh dấu tất cả đã đọc</button>
+            <button class="btn btn-secondary btn-sm" onclick="logout()">Đăng xuất</button>
+        </div>
+    </header>
+    <div class="content">
+        <div class="card">
+            <div class="card-header">
+                <h3>Tất cả thông báo</h3>
+            </div>
+            <div id="list" class="notif-list">
+                <div class="empty"><div class="ei">🔔</div><p>Đang tải...</p></div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>window.AI_WIDGET_ROLE = 'admin';</script>
+<script src="/shared.js"></script>
+<script src="/ai-widget.js"></script>
+<script>
+const ICONS = { info: '💬', warning: '⚠️', error: '🔴' };
+(async () => {
+    const u = await checkAuth('admin'); if (!u) return;
+    document.getElementById('uName').textContent = u.full_name;
+    document.getElementById('avBox').textContent = u.full_name.split(' ').slice(-1)[0][0];
+    loadNotifCount();
+    loadList();
+})();
+
+async function loadList() {
+    const res = await fetch('/api/notifications').then(r => r.json());
+    const el = document.getElementById('list');
+    if (!res.success || !res.data.length) {
+        el.innerHTML = '<div class="empty"><div class="ei">🔔</div><p>Không có thông báo nào</p></div>';
+        return;
+    }
+    el.innerHTML = res.data.map(n => `
+        <div class="notif-item ${n.is_read ? '' : 'unread'}">
+            <div class="ni-icon ni-${n.type}">${ICONS[n.type] || 'ℹ️'}</div>
+            <div class="ni-content">
+                <div class="ni-text">${n.message}</div>
+                <div class="ni-time">
+                    <span>🕒 ${fmtDateTime(n.created_at)}</span>
+                    ${!n.is_read ? '<span class="unread-badge-pill">Mới</span>' : ''}
+                </div>
+            </div>
+        </div>`).join('');
+}
+
+async function markAll() {
+    await fetch('/api/notifications/all/read', { method: 'PATCH' });
+    loadList();
+    loadNotifCount();
+}
+</script>
+</body>
+</html>

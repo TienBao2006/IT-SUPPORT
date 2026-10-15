@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Admin - Quản lý Ticket</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/shared.css">
+</head>
+<body>
+<aside class="sidebar">
+    <div class="logo">IT <span>Support</span></div>
+    <div class="menu-section">Quản lý</div>
+    <ul class="menu">
+        <li><a href="/admin/index.html"><span class="icon">🏠</span><span>Dashboard</span></a></li>
+        <li><a href="/admin/tickets.html" class="active"><span class="icon">🎫</span><span>Ticket</span></a></li>
+        <li><a href="/admin/users.html"><span class="icon">👥</span><span>Người dùng</span></a></li>
+        <li><a href="/admin/reports.html"><span class="icon">📊</span><span>Báo cáo</span></a></li>
+        <li><a href="/admin/notifications.html"><span class="icon">🔔</span><span>Thông báo</span></a></li>
+    </ul>
+    <div class="user-box">
+        <div class="avatar" id="avBox">AD</div>
+        <div>
+            <div class="user-name" id="uName">Admin</div>
+            <div class="user-role">Quản trị viên</div>
+        </div>
+    </div>
+</aside>
+
+<main class="main">
+    <header class="header">
+        <h2>Quản lý Ticket</h2>
+        <div class="header-right">
+            <button class="notif-btn" onclick="location.href='/admin/notifications.html'" title="Thông báo">🔔<span class="notif-badge" style="display:none">0</span></button>
+            <button class="btn btn-secondary btn-sm" onclick="logout()">Đăng xuất</button>
+        </div>
+    </header>
+    <div class="content">
+        <div class="card">
+            <div class="card-header">
+                <h3>Tất cả yêu cầu hỗ trợ</h3>
+            </div>
+            <div class="filter-bar">
+                <input id="srch" placeholder="🔍 Tìm mã, tiêu đề, người gửi..." oninput="load()">
+                <select id="fSt" onchange="load()">
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="new">🆕 Mới</option>
+                    <option value="assigned">📬 Đã phân công</option>
+                    <option value="processing">🔧 Đang xử lý</option>
+                    <option value="waiting">⏳ Chờ phản hồi</option>
+                    <option value="done">✅ Hoàn thành</option>
+                    <option value="overdue">⚠️ Quá hạn</option>
+                </select>
+                <select id="fTech" onchange="load()">
+                    <option value="">Tất cả kỹ thuật viên</option>
+                </select>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mã</th>
+                            <th>Người gửi</th>
+                            <th>Tiêu đề</th>
+                            <th>Loại</th>
+                            <th>Ưu tiên</th>
+                            <th>Trạng thái</th>
+                            <th>Kỹ thuật viên</th>
+                            <th>Ngày tạo</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Modal chi tiết + phân công -->
+<div class="modal" id="modal">
+    <div class="modal-box" style="max-width:640px">
+        <div class="modal-head">
+            <h2 id="mTitle">Chi tiết Ticket</h2>
+            <button class="close-btn" id="closeBtn">✕</button>
+        </div>
+        <div id="mBody"></div>
+    </div>
+</div>
+
+<script>window.AI_WIDGET_ROLE = 'admin';</script>
+<script src="/shared.js"></script>
+<script src="/ai-widget.js"></script>
+<script>
+let techs = [], allData = [];
+
+(async () => {
+    const u = await checkAuth('admin'); if (!u) return;
+    document.getElementById('uName').textContent = u.full_name;
+    document.getElementById('avBox').textContent = u.full_name.split(' ').slice(-1)[0][0];
+    loadNotifCount();
+    const tr = await fetch('/api/technicians').then(r => r.json());
+    if (tr.success) {
+        techs = tr.data;
+        const sel = document.getElementById('fTech');
+        techs.forEach(t => sel.innerHTML += `<option value="${t.id}">${t.full_name}</option>`);
+    }
+    load();
+    document.getElementById('closeBtn').onclick = closeModal;
+    window.addEventListener('click', e => { if (e.target === document.getElementById('modal')) closeModal(); });
+})();
+
+async function load() {
+    const p = new URLSearchParams();
+    const s = document.getElementById('srch').value; if (s) p.set('search', s);
+    const st = document.getElementById('fSt').value; if (st) p.set('status', st);
+    const te = document.getElementById('fTech').value; if (te) p.set('technician_id', te);
+    const res = await fetch('/api/tickets?' + p).then(r => r.json());
+    allData = res.success ? res.data : [];
+    const tb = document.getElementById('tbody');
+    if (!allData.length) {
+        tb.innerHTML = '<tr><td colspan="9"><div class="empty"><div class="ei">📭</div><p>Không có ticket nào</p></div></td></tr>';
+        return;
+    }
+    tb.innerHTML = allData.map(t => `<tr>
+        <td><span class="tid" onclick="showTicket(${t.id})">#${t.code}</span></td>
+        <td><b>${t.staff_name || '—'}</b><br><small style="color:#94a3b8">${t.staff_dept || ''}</small></td>
+        <td>${t.title}</td>
+        <td>${t.category || '—'}</td>
+        <td>${priorityBadge(t.priority)}</td>
+        <td>${statusBadge(t.status)}</td>
+        <td>${t.tech_name ? `<b>${t.tech_name}</b>` : '<span style="color:#ef4444;font-size:12px;font-weight:600">Chưa phân công</span>'}</td>
+        <td>${fmtDate(t.created_at)}</td>
+        <td>
+            ${(t.status === 'new' || t.status === 'assigned') ?
+                `<button class="btn btn-primary btn-sm" onclick="showTicket(${t.id})">Phân công</button>` :
+                `<button class="btn btn-secondary btn-sm" onclick="showTicket(${t.id})">Xem</button>`}
+        </td>
+    </tr>`).join('');
+}
+
+async function showTicket(id) {
+    const res = await fetch('/api/tickets/' + id).then(r => r.json());
+    if (!res.success) return;
+    const t = res.data;
+    const updates = t.updates || [];
+
+    const techOpts = techs.map(e =>
+        `<option value="${e.id}" ${t.technician_id == e.id ? 'selected' : ''}>${e.full_name} (đang xử lý: ${e.tickets_processing})</option>`
+    ).join('');
+
+    const updatesHtml = updates.length ? updates.map(u => `
+        <div style="border-left:3px solid ${u.role === 'technician' ? 'var(--primary)' : '#94a3b8'};padding:10px 14px;margin-bottom:10px;background:#f8fafc;border-radius:0 8px 8px 0">
+            <div style="font-size:12px;font-weight:700;color:#475569">${u.full_name} · ${fmtDateTime(u.created_at)}</div>
+            ${u.message ? `<div style="font-size:13.5px;margin-top:4px;color:#1e293b">${u.message}</div>` : ''}
+            ${u.image_path ? `<img src="${u.image_path}" style="max-width:100%;margin-top:8px;border-radius:8px;cursor:pointer;border:1px solid #e2e8f0" onclick="window.open('${u.image_path}')">` : ''}
+        </div>`).join('') : '<p style="color:#94a3b8;font-size:13px">Chưa có cập nhật nào</p>';
+
+    document.getElementById('mTitle').textContent = `#${t.code} — ${t.title}`;
+    document.getElementById('mBody').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px">
+            <div class="detail-row"><span class="detail-label">Người gửi</span><span class="detail-value">${t.staff_name || '—'} (${t.staff_dept || ''})</span></div>
+            <div class="detail-row"><span class="detail-label">Loại sự cố</span><span class="detail-value">${t.category || '—'}</span></div>
+            <div class="detail-row"><span class="detail-label">Mức độ ưu tiên</span><span class="detail-value">${priorityBadge(t.priority)}</span></div>
+            <div class="detail-row"><span class="detail-label">Trạng thái</span><span class="detail-value">${statusBadge(t.status)}</span></div>
+            <div class="detail-row"><span class="detail-label">Ngày tạo</span><span class="detail-value">${fmtDateTime(t.created_at)}</span></div>
+            <div class="detail-row"><span class="detail-label">Cập nhật cuối</span><span class="detail-value">${fmtDateTime(t.updated_at)}</span></div>
+        </div>
+        ${t.description ? `<div style="background:#f8fafc;padding:14px;border-radius:10px;font-size:13.5px;margin-bottom:18px;border:1px solid #e2e8f0"><b>Mô tả chi tiết:</b><br><span style="color:#334155;margin-top:4px;display:block">${t.description}</span></div>` : ''}
+        ${t.image_path ? `<div style="margin-bottom:18px"><b style="font-size:13px">📷 Ảnh đính kèm:</b><br><img src="${t.image_path}" style="max-width:100%;max-height:280px;border-radius:10px;margin-top:8px;border:1px solid #e2e8f0;cursor:pointer;object-fit:contain" onclick="window.open('${t.image_path}')"></div>` : ''}
+
+        <!-- Phân công -->
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:18px;margin-bottom:18px">
+            <div style="font-weight:700;font-size:14.5px;margin-bottom:10px;color:#9a3412">📬 Phân công kỹ thuật viên</div>
+            <select id="selTech" style="width:100%;padding:10px 14px;border:1.5px solid #fed7aa;border-radius:8px;font-size:13.5px;margin-bottom:10px;background:#ffffff">
+                <option value="">-- Chọn kỹ thuật viên phụ trách --</option>${techOpts}
+            </select>
+            <div style="font-size:12px;color:#92400e;margin-bottom:12px">
+                ⚡ Sau khi phân công, kỹ thuật viên sẽ nhận thông báo trên bảng điều khiển.
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+                <button class="btn btn-primary" onclick="assignTicket(${t.id})">📬 Xác nhận phân công</button>
+                <span id="assignMsg" style="font-size:13px;font-weight:600"></span>
+            </div>
+        </div>
+
+        <!-- Lịch sử cập nhật -->
+        <div>
+            <div style="font-weight:700;font-size:14.5px;margin-bottom:12px">📋 Tiến trình xử lý</div>
+            ${updatesHtml}
+        </div>`;
+
+    document.getElementById('modal').classList.add('show');
+}
+
+async function assignTicket(id) {
+    const techId = document.getElementById('selTech').value;
+    const msgEl = document.getElementById('assignMsg');
+    if (!techId) { msgEl.style.color = '#dc2626'; msgEl.textContent = '⚠️ Vui lòng chọn kỹ thuật viên'; return; }
+    const res = await fetch(`/api/tickets/${id}/assign`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ technician_id: techId })
+    }).then(r => r.json());
+    if (res.success) {
+        msgEl.style.color = '#15803d';
+        msgEl.textContent = '✅ ' + res.message;
+        load();
+        setTimeout(() => showTicket(id), 500);
+    } else {
+        msgEl.style.color = '#dc2626'; msgEl.textContent = '⚠️ ' + res.message;
+    }
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('show'); }
+</script>
+</body>
+</html>

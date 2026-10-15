@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Trợ lý AI - Nhân viên</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/shared.css">
+    <link rel="stylesheet" href="/css/chat.css">
+</head>
+<body>
+<aside class="sidebar">
+    <div class="logo">IT <span>Support</span></div>
+    <div class="menu-section">Menu</div>
+    <ul class="menu">
+        <li><a href="/staff/dashboard.html"><span class="icon">🏠</span><span>Trang chủ</span></a></li>
+        <li><a href="/staff/tickets.html"><span class="icon">🎫</span><span>Yêu cầu của tôi</span></a></li>
+        <li><a href="/staff/ai-chat.html" class="active"><span class="icon">🤖</span><span>Trợ lý AI</span></a></li>
+        <li><a href="/staff/notifications.html"><span class="icon">🔔</span><span>Thông báo</span></a></li>
+    </ul>
+    <div class="user-box">
+        <div class="avatar" id="avBox">NV</div>
+        <div>
+            <div class="user-name" id="uName">Nhân viên</div>
+            <div class="user-role">Nhân viên công ty</div>
+        </div>
+    </div>
+</aside>
+
+<main class="main" style="display:flex;flex-direction:column;overflow:hidden">
+    <header class="header">
+        <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:38px;height:38px;background:linear-gradient(135deg,#6366f1,#1677ff);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:19px;box-shadow:0 2px 8px rgba(99,102,241,0.3)">🤖</div>
+            <div>
+                <div style="font-size:16px;font-weight:700">Trợ lý AI IT Support</div>
+                <div style="font-size:11.5px;color:#10b981;display:flex;align-items:center;gap:5px">
+                    <span style="width:7px;height:7px;background:#10b981;border-radius:50%;display:inline-block"></span>
+                    Đang sẵn sàng hỗ trợ
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="btn btn-secondary btn-sm" onclick="clearChat()">🗑️ Xóa chat</button>
+            <button class="btn btn-secondary btn-sm" onclick="logout()">Đăng xuất</button>
+        </div>
+    </header>
+
+    <div class="chat-layout">
+        <div class="chat-body" id="chatBody">
+            <div class="welcome" id="welcomeBlock">
+                <div class="wi">🤖</div>
+                <h3>Xin chào! Mình là IT Bot</h3>
+                <p>Mình có thể giúp bạn chẩn đoán sự cố, hướng dẫn sử dụng thiết bị,<br>hoặc hỗ trợ tạo yêu cầu kỹ thuật phù hợp.</p>
+                <div class="chips">
+                    <span class="chip" onclick="useChip(this)">💻 Máy tính của tôi bị lỗi</span>
+                    <span class="chip" onclick="useChip(this)">🌐 Không vào được internet</span>
+                    <span class="chip" onclick="useChip(this)">📧 Không gửi được email</span>
+                    <span class="chip" onclick="useChip(this)">🖨️ Cách kết nối máy in</span>
+                    <span class="chip" onclick="useChip(this)">🔑 Quên mật khẩu máy tính</span>
+                    <span class="chip" onclick="useChip(this)">🐢 Máy chạy chậm bất thường</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-footer">
+            <!-- Image preview bar -->
+            <div id="imgPreviewBar" style="display:none;align-items:center;gap:10px;padding:8px 12px;background:#f1f5f9;border-radius:10px;margin-bottom:8px;border:1px solid #e2e8f0">
+                <img id="imgPreviewThumb" src="" alt="preview" style="width:44px;height:44px;object-fit:cover;border-radius:7px;border:1px solid #e2e8f0;flex-shrink:0">
+                <span id="imgPreviewName" style="font-size:12.5px;color:#475569;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+                <button onclick="removePreviewImg()" style="background:#fee2e2;border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:12px;color:#dc2626;display:flex;align-items:center;justify-content:center;flex-shrink:0" title="Xóa ảnh">✕</button>
+            </div>
+
+            <div class="input-box">
+                <!-- Attach image button -->
+                <button id="attachBtn" onclick="document.getElementById('imgFileInput').click()" title="Đính kèm hình ảnh"
+                    style="background:none;border:none;cursor:pointer;color:#64748b;padding:4px 2px;display:flex;align-items:center;font-size:18px;transition:color 0.15s;flex-shrink:0">
+                    🖼️
+                </button>
+                <input type="file" id="imgFileInput" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none" onchange="handleImgSelect(this)">
+                <textarea id="msgInput" placeholder="Mô tả sự cố IT, gửi ảnh chụp màn hình, hoặc hỏi bất kỳ điều gì..." rows="1"
+                    oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
+                <button class="send-btn" id="sendBtn" onclick="send()" title="Gửi tin nhắn">&#10148;</button>
+            </div>
+            <div class="input-hint">Enter gửi · Shift+Enter xuống dòng · Hỗ trợ hình ảnh · Powered by Gemini AI</div>
+        </div>
+    </div>
+</main>
+
+<script>window.AI_WIDGET_ROLE = 'staff';</script>
+<script src="/shared.js"></script>
+<script>
+let chatHistory = [], userInitials = 'NV', isLoading = false;
+let pendingImg = null;
+
+const ALLOWED_MIME = ['image/jpeg','image/png','image/gif','image/webp'];
+const MAX_IMG_MB = 5;
+
+(async () => {
+    const u = await checkAuth('staff'); if (!u) return;
+    document.getElementById('uName').textContent = u.full_name;
+    document.getElementById('avBox').textContent = u.full_name.split(' ').slice(-1)[0][0];
+    userInitials = u.full_name.split(' ').slice(-2).map(w => w[0]).join('').toUpperCase();
+    loadNotifCount();
+
+    const saved = localStorage.getItem('ai_history_staff_v2');
+    if (saved) {
+        try {
+            chatHistory = JSON.parse(saved);
+            if (chatHistory.length) {
+                document.getElementById('welcomeBlock')?.remove();
+                chatHistory.forEach(m => {
+                    if (m.role === 'user') appendBubble('user', m.content, m.image || null, false);
+                    else appendBubble('ai', m.content, null, false);
+                });
+                scrollEnd();
+            }
+        } catch { localStorage.removeItem('ai_history_staff_v2'); }
+    }
+    // Migrate old key
+    localStorage.removeItem('ai_history_staff');
+})();
+
+function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }
+function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 140) + 'px'; }
+function useChip(el) { document.getElementById('welcomeBlock')?.remove(); document.getElementById('msgInput').value = el.textContent; send(); }
+
+// ── Image handling ────────────────────────────────────────
+function handleImgSelect(input) {
+    const file = input.files[0];
+    if (!file) return;
+    input.value = '';
+    if (!ALLOWED_MIME.includes(file.type)) { showToast('⚠️ Chỉ hỗ trợ JPG, PNG, GIF, WEBP'); return; }
+    if (file.size > MAX_IMG_MB * 1024 * 1024) { showToast(`⚠️ Ảnh quá lớn (tối đa ${MAX_IMG_MB}MB)`); return; }
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        const dataUrl = ev.target.result;
+        pendingImg = { base64: dataUrl.split(',')[1], mimeType: file.type, dataUrl, name: file.name };
+        document.getElementById('imgPreviewThumb').src = dataUrl;
+        document.getElementById('imgPreviewName').textContent = file.name;
+        document.getElementById('imgPreviewBar').style.display = 'flex';
+        document.getElementById('attachBtn').style.color = '#4f46e5';
+    };
+    reader.readAsDataURL(file);
+}
+
+function removePreviewImg() {
+    pendingImg = null;
+    document.getElementById('imgPreviewBar').style.display = 'none';
+    document.getElementById('imgPreviewThumb').src = '';
+    document.getElementById('imgFileInput').value = '';
+    document.getElementById('attachBtn').style.color = '';
+}
+
+function showToast(msg) {
+    const t = document.createElement('div');
+    t.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;z-index:9999;box-shadow:0 4px 14px rgba(0,0,0,0.2)';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+}
+
+// ── Send ─────────────────────────────────────────────────
+async function send() {
+    const input = document.getElementById('msgInput');
+    const msg = input.value.trim();
+    if ((!msg && !pendingImg) || isLoading) return;
+
+    document.getElementById('welcomeBlock')?.remove();
+    input.value = ''; input.style.height = 'auto';
+    isLoading = true;
+    document.getElementById('sendBtn').disabled = true;
+
+    const imgSnapshot = pendingImg ? { ...pendingImg } : null;
+    removePreviewImg();
+
+    appendBubble('user', msg, imgSnapshot ? imgSnapshot.dataUrl : null);
+    chatHistory.push({ role: 'user', content: msg, image: imgSnapshot ? imgSnapshot.dataUrl : null });
+
+    const tid = appendTyping();
+
+    try {
+        const payload = {
+            message: msg,
+            history: chatHistory.slice(-12).filter(m => !m.image).map(m => ({ role: m.role, content: m.content || '' }))
+        };
+        if (imgSnapshot) {
+            payload.image = { data: imgSnapshot.base64, mimeType: imgSnapshot.mimeType };
+        }
+
+        const res = await fetch('/api/ai/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(payload)
+        });
+
+        removeEl(tid);
+
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const reply = data.success ? data.reply : '⚠️ Máy chủ trả về lỗi. Vui lòng thử lại.';
+        appendBubble('ai', reply);
+        chatHistory.push({ role: 'assistant', content: reply });
+        if (chatHistory.length > 40) chatHistory = chatHistory.slice(-40);
+        localStorage.setItem('ai_history_staff_v2', JSON.stringify(chatHistory));
+    } catch {
+        removeEl(tid);
+        appendBubble('ai', '❌ Không thể kết nối đến AI. Vui lòng kiểm tra mạng và thử lại.');
+    }
+    isLoading = false;
+    document.getElementById('sendBtn').disabled = false;
+}
+
+// ── Render helpers ────────────────────────────────────────
+function appendBubble(role, text, imageDataUrl, animate) {
+    if (animate === undefined) animate = true;
+    const body = document.getElementById('chatBody');
+    const isUser = role === 'user';
+    const now = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    const el = document.createElement('div');
+    el.className = `msg ${isUser ? 'user' : 'ai'}`;
+    if (!animate) el.style.animation = 'none';
+
+    let imgHtml = '';
+    if (imageDataUrl) {
+        imgHtml = `<img src="${esc(imageDataUrl)}" alt="ảnh" style="max-width:100%;max-height:200px;border-radius:10px;object-fit:cover;display:block;margin-bottom:6px;cursor:pointer;border:1px solid rgba(255,255,255,0.2)" onclick="window.open('${esc(imageDataUrl)}')">`;
+    }
+    let textHtml = text ? `<div style="white-space:pre-wrap">${fmt(text)}</div>` : '';
+
+    el.innerHTML = `
+        <div class="avatar-sm">${isUser ? userInitials : '🤖'}</div>
+        <div>
+            <div class="bubble">${imgHtml}${textHtml}</div>
+            <div class="msg-meta">${now}</div>
+        </div>`;
+    body.appendChild(el);
+    if (animate) scrollEnd();
+}
+
+function appendTyping() {
+    const body = document.getElementById('chatBody'); const id = 'ty_' + Date.now();
+    const el = document.createElement('div'); el.className = 'msg ai'; el.id = id;
+    el.innerHTML = `<div class="avatar-sm">🤖</div><div class="bubble typing-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+    body.appendChild(el); scrollEnd(); return id;
+}
+
+function removeEl(id) { document.getElementById(id)?.remove(); }
+function scrollEnd() { const b = document.getElementById('chatBody'); b.scrollTop = b.scrollHeight; }
+
+function clearChat() {
+    if (chatHistory.length && !confirm('Xóa lịch sử trò chuyện?')) return;
+    chatHistory = [];
+    localStorage.removeItem('ai_history_staff_v2');
+    removePreviewImg();
+    document.getElementById('chatBody').innerHTML = `
+        <div class="welcome" id="welcomeBlock">
+            <div class="wi">🤖</div>
+            <h3>Xin chào! Mình là IT Bot</h3>
+            <p>Hỏi mình về bất kỳ vấn đề IT nào bạn đang gặp phải.</p>
+            <div class="chips">
+                <span class="chip" onclick="useChip(this)">💻 Máy tính của tôi bị lỗi</span>
+                <span class="chip" onclick="useChip(this)">🌐 Không vào được internet</span>
+                <span class="chip" onclick="useChip(this)">📧 Không gửi được email</span>
+                <span class="chip" onclick="useChip(this)">🖨️ Cách kết nối máy in</span>
+                <span class="chip" onclick="useChip(this)">🔑 Quên mật khẩu máy tính</span>
+                <span class="chip" onclick="useChip(this)">🐢 Máy chạy chậm bất thường</span>
+            </div>
+        </div>`;
+}
+
+function esc(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmt(text) {
+    if (!text) return '';
+    return esc(text)
+        .replace(/^(\d+\.)\s/gm, '<strong>$1</strong> ')
+        .replace(/\n/g, '<br>');
+}
+</script>
+</body>
+</html>

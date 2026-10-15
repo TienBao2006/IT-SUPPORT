@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Admin - Tổng quan hệ thống</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/shared.css">
+</head>
+<body>
+<aside class="sidebar">
+    <div class="logo">IT <span>Support</span></div>
+    <div class="menu-section">Quản lý</div>
+    <ul class="menu">
+        <li><a href="/admin/index.html" class="active"><span class="icon">🏠</span><span>Dashboard</span></a></li>
+        <li><a href="/admin/tickets.html"><span class="icon">🎫</span><span>Ticket</span></a></li>
+        <li><a href="/admin/users.html"><span class="icon">👥</span><span>Người dùng</span></a></li>
+        <li><a href="/admin/reports.html"><span class="icon">📊</span><span>Báo cáo</span></a></li>
+        <li><a href="/admin/notifications.html"><span class="icon">🔔</span><span>Thông báo</span></a></li>
+    </ul>
+    <div class="user-box">
+        <div class="avatar" id="avBox">AD</div>
+        <div>
+            <div class="user-name" id="uName">Admin</div>
+            <div class="user-role">Quản trị viên</div>
+        </div>
+    </div>
+</aside>
+
+<main class="main">
+    <header class="header">
+        <h2>Tổng quan hệ thống</h2>
+        <div class="header-right">
+            <button class="notif-btn" onclick="location.href='/admin/notifications.html'" title="Thông báo">🔔<span class="notif-badge" style="display:none">0</span></button>
+            <button class="btn btn-secondary btn-sm" onclick="logout()">Đăng xuất</button>
+        </div>
+    </header>
+    <div class="content">
+        <div class="stats">
+            <div class="stat-card"><div><h3 id="sTotal">—</h3><p>Tổng ticket</p></div><div class="stat-icon si-blue">🎫</div></div>
+            <div class="stat-card"><div><h3 id="sNew">—</h3><p>Ticket mới</p></div><div class="stat-icon si-orange">🆕</div></div>
+            <div class="stat-card"><div><h3 id="sProcessing">—</h3><p>Đang xử lý</p></div><div class="stat-icon si-purple">🔧</div></div>
+            <div class="stat-card"><div><h3 id="sDone">—</h3><p>Đã hoàn thành</p></div><div class="stat-icon si-green">✅</div></div>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <h3>Ticket cần phân công</h3>
+                <a href="/admin/tickets.html" class="btn btn-primary btn-sm">Xem tất cả →</a>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mã</th>
+                            <th>Người gửi</th>
+                            <th>Tiêu đề</th>
+                            <th>Ưu tiên</th>
+                            <th>Trạng thái</th>
+                            <th>Ngày tạo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody">
+                        <tr><td colspan="6" style="text-align:center;padding:28px;color:#94a3b8">Đang tải dữ liệu...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>window.AI_WIDGET_ROLE = 'admin';</script>
+<script src="/shared.js"></script>
+<script src="/ai-widget.js"></script>
+<script>
+(async () => {
+    const u = await checkAuth('admin'); if (!u) return;
+    document.getElementById('uName').textContent = u.full_name;
+    document.getElementById('avBox').textContent = u.full_name.split(' ').slice(-1)[0][0];
+    loadNotifCount();
+
+    // Stats
+    const s = await fetch('/api/tickets/stats').then(r => r.json());
+    if (s.success) {
+        document.getElementById('sTotal').textContent = s.data.total || 0;
+        document.getElementById('sNew').textContent = s.data.new_count || 0;
+        document.getElementById('sProcessing').textContent = s.data.processing || 0;
+        document.getElementById('sDone').textContent = s.data.done || 0;
+    }
+
+    // Recent new tickets
+    const t = await fetch('/api/tickets?status=new').then(r => r.json());
+    const tbody = document.getElementById('tbody');
+    if (!t.success || !t.data.length) {
+        tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="ei">📭</div><p>Không có ticket mới cần phân công</p></div></td></tr>';
+        return;
+    }
+    tbody.innerHTML = t.data.slice(0, 6).map(r => `<tr>
+        <td><a href="/admin/tickets.html" class="tid">#${r.code}</a></td>
+        <td><b>${r.staff_name || '—'}</b></td>
+        <td>${r.title}</td>
+        <td>${priorityBadge(r.priority)}</td>
+        <td>${statusBadge(r.status)}</td>
+        <td>${fmtDate(r.created_at)}</td>
+    </tr>`).join('');
+})();
+</script>
+</body>
+</html>

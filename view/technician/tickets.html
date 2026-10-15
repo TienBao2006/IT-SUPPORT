@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Kỹ thuật viên - Ticket được phân công</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/shared.css">
+</head>
+<body>
+<aside class="sidebar">
+    <div class="logo">IT <span>Support</span></div>
+    <div class="menu-section">Kỹ thuật</div>
+    <ul class="menu">
+        <li><a href="/technician/dashboard.html"><span class="icon">🏠</span><span>Trang chủ</span></a></li>
+        <li><a href="/technician/tickets.html" class="active"><span class="icon">🔧</span><span>Ticket của tôi</span></a></li>
+        <li><a href="/technician/ai-chat.html"><span class="icon">🤖</span><span>Trợ lý AI</span></a></li>
+        <li><a href="/technician/notifications.html"><span class="icon">🔔</span><span>Thông báo</span></a></li>
+    </ul>
+    <div class="user-box">
+        <div class="avatar" id="avBox">KT</div>
+        <div>
+            <div class="user-name" id="uName">KTV</div>
+            <div class="user-role">Nhân viên kỹ thuật</div>
+        </div>
+    </div>
+</aside>
+
+<main class="main">
+    <header class="header">
+        <h2>Ticket được phân công</h2>
+        <div class="header-right">
+            <button class="notif-btn" onclick="location.href='/technician/notifications.html'" title="Thông báo">🔔<span class="notif-badge" style="display:none">0</span></button>
+            <button class="btn btn-secondary btn-sm" onclick="logout()">Đăng xuất</button>
+        </div>
+    </header>
+    <div class="content">
+        <div class="card">
+            <div class="card-header">
+                <h3>Danh sách yêu cầu phụ trách</h3>
+            </div>
+            <div class="filter-bar">
+                <input id="srch" placeholder="🔍 Tìm mã ticket, tiêu đề, người gửi..." oninput="filterLocal()">
+                <select id="fSt" onchange="load()">
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="assigned">📬 Chờ chấp nhận</option>
+                    <option value="processing">🔧 Đang xử lý</option>
+                    <option value="waiting">⏳ Chờ phản hồi</option>
+                    <option value="done">✅ Hoàn thành</option>
+                </select>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mã</th>
+                            <th>Người gửi</th>
+                            <th>Tiêu đề</th>
+                            <th>Loại</th>
+                            <th>Ưu tiên</th>
+                            <th>Trạng thái</th>
+                            <th>Ngày tạo</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div class="modal" id="modal">
+    <div class="modal-box">
+        <div class="modal-head">
+            <h2 id="mTitle">Chi tiết Ticket</h2>
+            <button class="close-btn" id="closeBtn">✕</button>
+        </div>
+        <div id="mBody"></div>
+    </div>
+</div>
+
+<script>window.AI_WIDGET_ROLE = 'technician';</script>
+<script src="/shared.js"></script>
+<script src="/ai-widget.js"></script>
+<script>
+let allData = [];
+(async () => {
+    const u = await checkAuth('technician'); if (!u) return;
+    document.getElementById('uName').textContent = u.full_name;
+    document.getElementById('avBox').textContent = u.full_name.split(' ').slice(-1)[0][0];
+    loadNotifCount(); load();
+    document.getElementById('closeBtn').onclick = closeModal;
+    window.addEventListener('click', e => { if (e.target === document.getElementById('modal')) closeModal(); });
+})();
+
+async function load() {
+    const st = document.getElementById('fSt').value;
+    const p = new URLSearchParams(); if (st) p.set('status', st);
+    const res = await fetch('/api/assigned/tickets?' + p).then(r => r.json());
+    allData = res.success ? res.data : [];
+    render(allData);
+}
+
+function filterLocal() {
+    const q = document.getElementById('srch').value.toLowerCase();
+    render(allData.filter(t => t.title.toLowerCase().includes(q) || t.code.toLowerCase().includes(q) || (t.staff_name && t.staff_name.toLowerCase().includes(q))));
+}
+
+function render(data) {
+    const tb = document.getElementById('tbody');
+    if (!data.length) {
+        tb.innerHTML = '<tr><td colspan="8"><div class="empty"><div class="ei">📭</div><p>Không tìm thấy ticket nào</p></div></td></tr>';
+        return;
+    }
+    tb.innerHTML = data.map(t => `<tr>
+        <td><span class="tid" onclick="showTicket(${t.id})">#${t.code}</span></td>
+        <td><b>${t.staff_name || '—'}</b></td>
+        <td>${t.title}</td>
+        <td>${t.category || '—'}</td>
+        <td>${priorityBadge(t.priority)}</td>
+        <td>${statusBadge(t.status)}</td>
+        <td>${fmtDate(t.created_at)}</td>
+        <td>
+            ${t.status === 'assigned' ? `
+                <div style="display:flex;gap:6px">
+                    <button class="btn btn-primary btn-sm" onclick="acceptTicket(${t.id})">✅ Tiếp nhận</button>
+                    <button class="btn btn-danger btn-sm" onclick="openReject(${t.id}, '${t.code}')">❌ Từ chối</button>
+                </div>` :
+                `<button class="btn btn-primary btn-sm" onclick="showTicket(${t.id})">Cập nhật</button>`
+            }
+        </td>
+    </tr>`).join('');
+}
+
+async function acceptTicket(id) {
+    const res = await fetch(`/api/assigned/tickets/${id}/accept`, { method: 'POST' }).then(r => r.json());
+    if (res.success) load(); else alert('Lỗi: ' + res.message);
+}
+
+function openReject(id, code) {
+    document.getElementById('mTitle').textContent = `Từ chối ticket #${code}`;
+    document.getElementById('mBody').innerHTML = `
+        <p style="font-size:13.5px;color:#475569;margin-bottom:16px">Nhập lý do để admin điều phối kỹ thuật viên khác phù hợp hơn.</p>
+        <textarea id="rejectReason" placeholder="Lý do từ chối cụ thể..." style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;min-height:86px;font-size:13.5px;outline:none"></textarea>
+        <div id="rErr" class="form-err"></div>
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:16px">
+            <button class="btn btn-secondary" onclick="closeModal()">Hủy</button>
+            <button class="btn btn-danger" onclick="confirmReject(${id})">❌ Xác nhận từ chối</button>
+        </div>`;
+    document.getElementById('modal').classList.add('show');
+}
+
+async function confirmReject(id) {
+    const reason = document.getElementById('rejectReason').value.trim();
+    const errEl = document.getElementById('rErr'); errEl.style.display = 'none';
+    if (!reason) { errEl.textContent = 'Vui lòng nhập lý do từ chối'; errEl.style.display = 'block'; return; }
+    const res = await fetch(`/api/assigned/tickets/${id}/reject`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason })
+    }).then(r => r.json());
+    if (res.success) { closeModal(); load(); } else alert('Lỗi: ' + res.message);
+}
+
+async function showTicket(id) {
+    const res = await fetch(`/api/assigned/tickets/${id}`).then(r => r.json());
+    if (!res.success) { alert(res.message); return; }
+    const t = res.data;
+    const updates = t.updates || [];
+    document.getElementById('mTitle').textContent = `#${t.code} — ${t.title}`;
+    document.getElementById('mBody').innerHTML = `
+        <div class="detail-row"><span class="detail-label">Người gửi</span><span class="detail-value">${t.staff_name || '—'} (${t.staff_dept || ''})</span></div>
+        <div class="detail-row"><span class="detail-label">Email</span><span class="detail-value">${t.staff_email || '—'}</span></div>
+        <div class="detail-row"><span class="detail-label">Loại sự cố</span><span class="detail-value">${t.category || '—'}</span></div>
+        <div class="detail-row"><span class="detail-label">Mức độ ưu tiên</span><span class="detail-value">${priorityBadge(t.priority)}</span></div>
+        <div class="detail-row"><span class="detail-label">Trạng thái</span><span class="detail-value">${statusBadge(t.status)}</span></div>
+        ${t.description ? `<div style="margin:16px 0;background:#f8fafc;padding:14px;border-radius:10px;font-size:13.5px;border:1px solid #e2e8f0"><b>Mô tả:</b><br><span style="color:#334155;margin-top:4px;display:block">${t.description}</span></div>` : ''}
+
+        <div style="margin-bottom:18px">
+            <b style="font-size:14px;display:block;margin-bottom:8px">Lịch sử cập nhật:</b>
+            <div style="max-height:180px;overflow-y:auto">
+                ${updates.length ? updates.map(u => `
+                    <div style="border-left:3px solid var(--primary);padding:10px 14px;margin-bottom:8px;background:#f8fafc;border-radius:0 8px 8px 0">
+                        <div style="font-size:11.5px;font-weight:700;color:#64748b">${u.full_name} · ${fmtDateTime(u.created_at)}</div>
+                        ${u.message ? `<div style="font-size:13.5px;margin-top:4px;color:#1e293b">${u.message}</div>` : ''}
+                        ${u.image_path ? `<img src="${u.image_path}" style="max-width:100%;margin-top:8px;border-radius:8px;cursor:pointer;border:1px solid #e2e8f0" onclick="window.open('${u.image_path}')">` : ''}
+                    </div>`).join('') : '<p style="font-size:12.5px;color:#94a3b8">Chưa có bản cập nhật nào</p>'}
+            </div>
+        </div>
+
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:18px">
+            <b style="font-size:14.5px;color:#15803d">📝 Gửi cập nhật tiến độ</b>
+            <div style="margin-top:14px">
+                <select id="updStatus" style="width:100%;padding:10px 14px;border:1.5px solid #bbf7d0;border-radius:8px;font-size:13.5px;margin-bottom:12px;background:#ffffff;outline:none">
+                    <option value="">-- Giữ nguyên trạng thái --</option>
+                    <option value="processing">🔧 Đang xử lý</option>
+                    <option value="waiting">⏳ Chờ phản hồi</option>
+                    <option value="done">✅ Hoàn thành</option>
+                </select>
+                <textarea id="updMsg" placeholder="Nội dung thao tác kỹ thuật, kết quả xử lý..." style="width:100%;padding:10px 14px;border:1.5px solid #bbf7d0;border-radius:8px;font-size:13.5px;min-height:76px;outline:none;resize:vertical;margin-bottom:12px;background:#ffffff"></textarea>
+                <div style="margin-bottom:12px">
+                    <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">📷 Đính kèm ảnh minh chứng</label>
+                    <input type="file" id="updImage" accept="image/*" style="font-size:13.5px">
+                </div>
+                <div id="updErr" class="form-err"></div>
+                <button class="btn btn-primary" onclick="submitUpdate(${t.id})">📤 Lưu cập nhật</button>
+            </div>
+        </div>`;
+    document.getElementById('modal').classList.add('show');
+}
+
+async function submitUpdate(id) {
+    const msg = document.getElementById('updMsg').value.trim();
+    const status = document.getElementById('updStatus').value;
+    const imageFile = document.getElementById('updImage').files[0];
+    const errEl = document.getElementById('updErr'); errEl.style.display = 'none';
+    if (!msg && !status && !imageFile) { errEl.textContent = 'Vui lòng nhập nội dung hoặc chọn trạng thái mới'; errEl.style.display = 'block'; return; }
+    const fd = new FormData();
+    if (msg) fd.append('message', msg);
+    if (status) fd.append('status', status);
+    if (imageFile) fd.append('image', imageFile);
+    const res = await fetch(`/api/assigned/tickets/${id}/update`, { method: 'POST', body: fd })
+        .then(r => r.json()).catch(() => ({ success: false, message: 'Lỗi kết nối máy chủ' }));
+    if (res.success) { closeModal(); load(); } else { errEl.textContent = '⚠️ ' + res.message; errEl.style.display = 'block'; }
+}
+function closeModal() { document.getElementById('modal').classList.remove('show'); }
+</script>
+</body>
+</html>

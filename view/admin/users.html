@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Admin - Quản lý Người dùng</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/shared.css">
+</head>
+<body>
+<aside class="sidebar">
+    <div class="logo">IT <span>Support</span></div>
+    <div class="menu-section">Quản lý</div>
+    <ul class="menu">
+        <li><a href="/admin/index.html"><span class="icon">🏠</span><span>Dashboard</span></a></li>
+        <li><a href="/admin/tickets.html"><span class="icon">🎫</span><span>Ticket</span></a></li>
+        <li><a href="/admin/users.html" class="active"><span class="icon">👥</span><span>Người dùng</span></a></li>
+        <li><a href="/admin/reports.html"><span class="icon">📊</span><span>Báo cáo</span></a></li>
+        <li><a href="/admin/notifications.html"><span class="icon">🔔</span><span>Thông báo</span></a></li>
+    </ul>
+    <div class="user-box">
+        <div class="avatar" id="avBox">AD</div>
+        <div>
+            <div class="user-name" id="uName">Admin</div>
+            <div class="user-role">Quản trị viên</div>
+        </div>
+    </div>
+</aside>
+
+<main class="main">
+    <header class="header">
+        <h2>Quản lý người dùng</h2>
+        <div class="header-right">
+            <button class="notif-btn" onclick="location.href='/admin/notifications.html'" title="Thông báo">🔔<span class="notif-badge" style="display:none">0</span></button>
+            <button class="btn btn-secondary btn-sm" onclick="logout()">Đăng xuất</button>
+        </div>
+    </header>
+    <div class="content">
+        <div class="card">
+            <div class="card-header">
+                <h3>Danh sách người dùng hệ thống</h3>
+                <button class="btn btn-primary btn-sm" id="btnAdd">+ Thêm tài khoản mới</button>
+            </div>
+            <div class="filter-bar">
+                <input id="srch" placeholder="🔍 Tìm kiếm họ tên, email..." oninput="load()">
+                <select id="fRole" onchange="load()">
+                    <option value="">Tất cả vai trò</option>
+                    <option value="admin">Admin</option>
+                    <option value="staff">Nhân viên</option>
+                    <option value="technician">Kỹ thuật viên</option>
+                </select>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Họ tên</th>
+                            <th>Email đăng nhập</th>
+                            <th>Phòng ban</th>
+                            <th>Vai trò</th>
+                            <th>Trạng thái</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div class="modal" id="modal">
+    <div class="modal-box" style="max-width:500px">
+        <div class="modal-head">
+            <h2 id="mTitle">Thêm người dùng</h2>
+            <button class="close-btn" id="closeBtn">✕</button>
+        </div>
+        <input type="hidden" id="editId">
+        <div class="form-grid">
+            <div class="form-group full">
+                <label>Họ và tên *</label>
+                <input id="inName" placeholder="Nguyễn Văn A">
+            </div>
+            <div class="form-group">
+                <label>Email * (đăng nhập)</label>
+                <input type="email" id="inEmail" placeholder="email@company.com">
+            </div>
+            <div class="form-group">
+                <label id="pwLbl">Mật khẩu *</label>
+                <input type="password" id="inPw" placeholder="Tối thiểu 6 ký tự">
+                <small id="pwHint" style="color:#94a3b8;font-size:11px;display:none;margin-top:4px">Để trống nếu không đổi</small>
+            </div>
+            <div class="form-group">
+                <label>Vai trò *</label>
+                <select id="inRole">
+                    <option value="staff">Nhân viên công ty</option>
+                    <option value="technician">Kỹ thuật viên</option>
+                    <option value="admin">Quản trị viên (Admin)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Phòng ban</label>
+                <input id="inDept" placeholder="Kế toán, Nhân sự, v.v.">
+            </div>
+            <div class="form-group">
+                <label>Số điện thoại</label>
+                <input id="inPhone" placeholder="0901234567">
+            </div>
+            <div class="form-group">
+                <label>Trạng thái</label>
+                <select id="inStatus">
+                    <option value="active">Hoạt động</option>
+                    <option value="inactive">Đã khóa</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-err" id="fErr"></div>
+        <div class="form-ok" id="fOk"></div>
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:22px">
+            <button class="btn btn-secondary" onclick="closeModal()">Hủy</button>
+            <button class="btn btn-primary" id="saveBtn" onclick="save()">Lưu thay đổi</button>
+        </div>
+    </div>
+</div>
+
+<script>window.AI_WIDGET_ROLE = 'admin';</script>
+<script src="/shared.js"></script>
+<script src="/ai-widget.js"></script>
+<script>
+let userData = [];
+(async () => {
+    const u = await checkAuth('admin'); if (!u) return;
+    document.getElementById('uName').textContent = u.full_name;
+    document.getElementById('avBox').textContent = u.full_name.split(' ').slice(-1)[0][0];
+    loadNotifCount(); load();
+    document.getElementById('btnAdd').onclick = openAdd;
+    document.getElementById('closeBtn').onclick = closeModal;
+    window.addEventListener('click', e => { if (e.target === document.getElementById('modal')) closeModal(); });
+})();
+
+async function load() {
+    const s = document.getElementById('srch').value;
+    const r = document.getElementById('fRole').value;
+    const p = new URLSearchParams();
+    if (s) p.set('search', s); if (r) p.set('role', r);
+    const res = await fetch('/api/users?' + p).then(r => r.json());
+    userData = res.success ? res.data : [];
+    const tb = document.getElementById('tbody');
+    if (!userData.length) {
+        tb.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="ei">👥</div><p>Không có người dùng nào phù hợp</p></div></td></tr>';
+        return;
+    }
+    tb.innerHTML = userData.map((u, i) => `<tr>
+        <td style="color:#94a3b8;font-weight:600">${i + 1}</td>
+        <td><b>${u.full_name}</b></td>
+        <td style="color:#64748b">${u.email}</td>
+        <td>${u.department || '—'}</td>
+        <td>${roleBadge(u.role)}</td>
+        <td><span class="badge ${u.status === 'active' ? 'b-active' : 'b-inactive'}">${u.status === 'active' ? 'Hoạt động' : 'Đã khóa'}</span></td>
+        <td style="display:flex;gap:8px">
+            <button class="btn btn-secondary btn-sm" data-id="${u.id}" title="Chỉnh sửa">✏️ Sửa</button>
+            <button class="btn btn-danger btn-sm" data-del="${u.id}" data-name="${u.full_name}" title="Xóa">🗑️</button>
+        </td>
+    </tr>`).join('');
+    document.querySelectorAll('[data-id]').forEach(b => b.onclick = () => openEdit(+b.dataset.id));
+    document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => del(+b.dataset.del, b.dataset.name));
+}
+
+function reset() {
+    ['editId', 'inName', 'inEmail', 'inPw', 'inDept', 'inPhone'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('inRole').value = 'staff';
+    document.getElementById('inStatus').value = 'active';
+    document.getElementById('fErr').style.display = 'none';
+    document.getElementById('fOk').style.display = 'none';
+    document.getElementById('saveBtn').style.display = '';
+}
+function openAdd() {
+    reset();
+    document.getElementById('mTitle').textContent = '➕ Thêm người dùng mới';
+    document.getElementById('pwLbl').textContent = 'Mật khẩu *';
+    document.getElementById('pwHint').style.display = 'none';
+    document.getElementById('modal').classList.add('show');
+}
+function openEdit(id) {
+    const u = userData.find(x => x.id === id); if (!u) return;
+    reset();
+    document.getElementById('mTitle').textContent = '✏️ Sửa: ' + u.full_name;
+    document.getElementById('editId').value = u.id;
+    document.getElementById('inName').value = u.full_name;
+    document.getElementById('inEmail').value = u.email;
+    document.getElementById('inRole').value = u.role;
+    document.getElementById('inDept').value = u.department || '';
+    document.getElementById('inPhone').value = u.phone || '';
+    document.getElementById('inStatus').value = u.status;
+    document.getElementById('pwLbl').textContent = 'Đổi mật khẩu mới';
+    document.getElementById('pwHint').style.display = 'block';
+    document.getElementById('modal').classList.add('show');
+}
+function closeModal() { document.getElementById('modal').classList.remove('show'); }
+
+async function save() {
+    const id = document.getElementById('editId').value;
+    const name = document.getElementById('inName').value.trim();
+    const email = document.getElementById('inEmail').value.trim();
+    const pw = document.getElementById('inPw').value;
+    const role = document.getElementById('inRole').value;
+    const dept = document.getElementById('inDept').value.trim();
+    const phone = document.getElementById('inPhone').value.trim();
+    const status = document.getElementById('inStatus').value;
+    const errEl = document.getElementById('fErr'); errEl.style.display = 'none';
+    if (!name) { errEl.textContent = 'Vui lòng nhập họ và tên'; errEl.style.display = 'block'; return; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.textContent = 'Email không hợp lệ'; errEl.style.display = 'block'; return; }
+    if (!id && !pw) { errEl.textContent = 'Vui lòng nhập mật khẩu'; errEl.style.display = 'block'; return; }
+    if (pw && pw.length < 6) { errEl.textContent = 'Mật khẩu phải có ít nhất 6 ký tự'; errEl.style.display = 'block'; return; }
+    const body = { full_name: name, email, role, department: dept, phone, status };
+    if (pw) body.password = pw;
+    const btn = document.getElementById('saveBtn'); btn.disabled = true; btn.textContent = 'Đang lưu...';
+    const res = await fetch(id ? `/api/users/${id}` : '/api/users', {
+        method: id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    }).then(r => r.json()).catch(() => ({ success: false, message: 'Lỗi kết nối máy chủ' }));
+    btn.disabled = false; btn.textContent = 'Lưu thay đổi';
+    if (res.success) {
+        load();
+        if (!id) {
+            document.getElementById('fOk').innerHTML = `✅ Tạo tài khoản thành công!<br>📧 Email: <b>${email}</b><br>🔑 Mật khẩu: <b>${pw}</b>`;
+            document.getElementById('fOk').style.display = 'block';
+            document.getElementById('saveBtn').style.display = 'none';
+        } else { closeModal(); }
+    } else { errEl.textContent = '⚠️ ' + res.message; errEl.style.display = 'block'; }
+}
+
+async function del(id, name) {
+    if (!confirm(`Bạn có chắc chắn muốn xóa người dùng "${name}"?`)) return;
+    const res = await fetch('/api/users/' + id, { method: 'DELETE' }).then(r => r.json());
+    if (res.success) load(); else alert('Lỗi: ' + res.message);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Nhân viên - Tổng quan</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/shared.css">
+</head>
+<body>
+<aside class="sidebar">
+    <div class="logo">IT <span>Support</span></div>
+    <div class="menu-section">Menu</div>
+    <ul class="menu">
+        <li><a href="/staff/dashboard.html" class="active"><span class="icon">🏠</span><span>Trang chủ</span></a></li>
+        <li><a href="/staff/tickets.html"><span class="icon">🎫</span><span>Yêu cầu của tôi</span></a></li>
+        <li><a href="/staff/ai-chat.html"><span class="icon">🤖</span><span>Trợ lý AI</span></a></li>
+        <li><a href="/staff/notifications.html"><span class="icon">🔔</span><span>Thông báo</span></a></li>
+    </ul>
+    <div class="user-box">
+        <div class="avatar" id="avBox">NV</div>
+        <div>
+            <div class="user-name" id="uName">Nhân viên</div>
+            <div class="user-role">Nhân viên công ty</div>
+        </div>
+    </div>
+</aside>
+
+<main class="main">
+    <header class="header">
+        <h2>Bảng điều khiển</h2>
+        <div class="header-right">
+            <button class="notif-btn" onclick="location.href='/staff/notifications.html'" title="Thông báo">🔔<span class="notif-badge" style="display:none">0</span></button>
+            <button class="btn btn-primary btn-sm" onclick="openCreate()">+ Gửi yêu cầu mới</button>
+            <button class="btn btn-secondary btn-sm" onclick="logout()">Đăng xuất</button>
+        </div>
+    </header>
+    <div class="content">
+        <div class="stats">
+            <div class="stat-card"><div><h3 id="sTotal">—</h3><p>Tổng yêu cầu</p></div><div class="stat-icon si-blue">🎫</div></div>
+            <div class="stat-card"><div><h3 id="sNew">—</h3><p>Chờ xử lý</p></div><div class="stat-icon si-orange">🆕</div></div>
+            <div class="stat-card"><div><h3 id="sProcessing">—</h3><p>Đang xử lý</p></div><div class="stat-icon si-purple">🔧</div></div>
+            <div class="stat-card"><div><h3 id="sDone">—</h3><p>Đã hoàn thành</p></div><div class="stat-icon si-green">✅</div></div>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <h3>Yêu cầu hỗ trợ gần đây</h3>
+                <a href="/staff/tickets.html" class="btn btn-secondary btn-sm">Xem tất cả →</a>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mã</th>
+                            <th>Tiêu đề</th>
+                            <th>Loại</th>
+                            <th>Ưu tiên</th>
+                            <th>Trạng thái</th>
+                            <th>Kỹ thuật viên</th>
+                            <th>Ngày tạo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody">
+                        <tr><td colspan="7" style="text-align:center;padding:28px;color:#94a3b8">Đang tải dữ liệu...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Modal tạo yêu cầu -->
+<div class="modal" id="createModal">
+    <div class="modal-box">
+        <div class="modal-head">
+            <h2>🎫 Gửi yêu cầu hỗ trợ kỹ thuật</h2>
+            <button class="close-btn" onclick="closeCreate()">✕</button>
+        </div>
+        <div class="form-grid">
+            <div class="form-group full">
+                <label>Tiêu đề yêu cầu *</label>
+                <input id="cTitle" placeholder="Ví dụ: Máy tính không lên màn hình, không in được tài liệu...">
+            </div>
+            <div class="form-group">
+                <label>Phân loại sự cố</label>
+                <select id="cCat">
+                    <option value="Phần cứng">💻 Phần cứng (Máy tính, màn hình, bàn phím...)</option>
+                    <option value="Phần mềm">🖥️ Phần mềm (Windows, Office, App chuyên dụng...)</option>
+                    <option value="Mạng">🌐 Mạng & Internet (WiFi, LAN, VPN...)</option>
+                    <option value="Tài khoản">🔑 Tài khoản (Mật khẩu, quyền truy cập...)</option>
+                    <option value="Máy in">🖨️ Máy in & Photocopy</option>
+                    <option value="Khác">📦 Khác</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Mức độ ưu tiên</label>
+                <select id="cPri">
+                    <option value="low">🟢 Thấp (Không ảnh hưởng công việc ngay)</option>
+                    <option value="medium" selected>🟡 Trung bình (Cần giải quyết trong ngày)</option>
+                    <option value="high">🔴 Cao (Cản trở trực tiếp công việc)</option>
+                    <option value="urgent">🚨 Khẩn cấp (Sự cố hệ thống tê liệt)</option>
+                </select>
+            </div>
+            <div class="form-group full">
+                <label>Mô tả chi tiết sự cố *</label>
+                <textarea id="cDesc" placeholder="Mô tả cụ thể hiện tượng lỗi, thông báo lỗi nếu có..."></textarea>
+            </div>
+            <div class="form-group full">
+                <label>📷 Ảnh chụp màn hình / lỗi <small style="color:#94a3b8;font-weight:normal">(tuỳ chọn, tối đa 5MB)</small></label>
+                <input type="file" id="cImage" accept="image/*" style="font-size:13.5px;padding:8px 0" onchange="previewImg(this)">
+                <div id="cPreview" style="display:none;margin-top:10px;position:relative;display:inline-block">
+                    <img id="cPreviewImg" style="max-width:100%;max-height:160px;border-radius:10px;border:1px solid #e2e8f0;object-fit:cover;display:none">
+                    <button onclick="removeImg()" style="position:absolute;top:6px;right:6px;background:#ef4444;color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:12px;cursor:pointer;display:none;box-shadow:0 2px 6px rgba(0,0,0,0.2)" id="removeImgBtn">✕</button>
+                </div>
+            </div>
+        </div>
+        <div class="form-err" id="cErr"></div>
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px">
+            <button class="btn btn-secondary" onclick="closeCreate()">Hủy</button>
+            <button class="btn btn-primary" id="cBtn" onclick="submitTicket()">Gửi yêu cầu ngay</button>
+        </div>
+    </div>
+</div>
+
+<script>window.AI_WIDGET_ROLE = 'staff';</script>
+<script src="/shared.js"></script>
+<script src="/ai-widget.js"></script>
+<script>
+(async () => {
+    const u = await checkAuth('staff'); if (!u) return;
+    document.getElementById('uName').textContent = u.full_name;
+    document.getElementById('avBox').textContent = u.full_name.split(' ').slice(-1)[0][0];
+    loadNotifCount();
+    const s = await fetch('/api/my/tickets/stats').then(r => r.json());
+    if (s.success) {
+        document.getElementById('sTotal').textContent = s.data.total || 0;
+        document.getElementById('sNew').textContent = (+s.data.new_count || 0) + (+s.data.assigned || 0);
+        document.getElementById('sProcessing').textContent = s.data.processing || 0;
+        document.getElementById('sDone').textContent = s.data.done || 0;
+    }
+    const t = await fetch('/api/my/tickets').then(r => r.json());
+    const tb = document.getElementById('tbody');
+    if (!t.success || !t.data.length) {
+        tb.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="ei">📭</div><p>Bạn chưa gửi yêu cầu hỗ trợ nào</p></div></td></tr>';
+        return;
+    }
+    tb.innerHTML = t.data.slice(0, 5).map(r => `<tr>
+        <td><a href="/staff/tickets.html" class="tid">#${r.code}</a></td>
+        <td><b>${r.title}</b></td>
+        <td>${r.category || '—'}</td>
+        <td>${priorityBadge(r.priority)}</td>
+        <td>${statusBadge(r.status)}</td>
+        <td>${r.tech_name ? `<b>${r.tech_name}</b>` : '<span style="color:#94a3b8">Đang chờ phân công</span>'}</td>
+        <td>${fmtDate(r.created_at)}</td>
+    </tr>`).join('');
+})();
+
+function openCreate() {
+    document.getElementById('cErr').style.display = 'none';
+    document.getElementById('cTitle').value = '';
+    document.getElementById('cDesc').value = '';
+    document.getElementById('cCat').value = 'Phần cứng';
+    document.getElementById('cPri').value = 'medium';
+    removeImg();
+    document.getElementById('createModal').classList.add('show');
+}
+function closeCreate() { document.getElementById('createModal').classList.remove('show'); }
+window.addEventListener('click', e => { if (e.target === document.getElementById('createModal')) closeCreate(); });
+
+function previewImg(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const img = document.getElementById('cPreviewImg');
+    const btn = document.getElementById('removeImgBtn');
+    img.src = URL.createObjectURL(file);
+    img.style.display = 'block';
+    btn.style.display = 'block';
+}
+function removeImg() {
+    document.getElementById('cImage').value = '';
+    const img = document.getElementById('cPreviewImg');
+    const btn = document.getElementById('removeImgBtn');
+    img.src = ''; img.style.display = 'none'; btn.style.display = 'none';
+}
+
+async function submitTicket() {
+    const title = document.getElementById('cTitle').value.trim();
+    const desc = document.getElementById('cDesc').value.trim();
+    const errEl = document.getElementById('cErr'); errEl.style.display = 'none';
+    if (!title) { errEl.textContent = 'Vui lòng nhập tiêu đề yêu cầu'; errEl.style.display = 'block'; return; }
+    if (!desc) { errEl.textContent = 'Vui lòng mô tả chi tiết vấn đề'; errEl.style.display = 'block'; return; }
+    const btn = document.getElementById('cBtn'); btn.disabled = true; btn.textContent = 'Đang gửi...';
+
+    const fd = new FormData();
+    fd.append('title', title);
+    fd.append('description', desc);
+    fd.append('category', document.getElementById('cCat').value);
+    fd.append('priority', document.getElementById('cPri').value);
+    const imgFile = document.getElementById('cImage').files[0];
+    if (imgFile) fd.append('image', imgFile);
+
+    const res = await fetch('/api/my/tickets', { method: 'POST', body: fd }).then(r => r.json()).catch(() => ({ success: false, message: 'Lỗi kết nối máy chủ' }));
+    btn.disabled = false; btn.textContent = 'Gửi yêu cầu ngay';
+    if (res.success) { closeCreate(); location.reload(); }
+    else { errEl.textContent = '⚠️ ' + res.message; errEl.style.display = 'block'; }
+}
+</script>
+</body>
+</html>

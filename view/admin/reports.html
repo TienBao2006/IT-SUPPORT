@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Admin - Báo cáo & Thống kê</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/shared.css">
+    <link rel="stylesheet" href="/css/reports.css">
+</head>
+<body>
+<aside class="sidebar">
+    <div class="logo">IT <span>Support</span></div>
+    <div class="menu-section">Quản lý</div>
+    <ul class="menu">
+        <li><a href="/admin/index.html"><span class="icon">🏠</span><span>Dashboard</span></a></li>
+        <li><a href="/admin/tickets.html"><span class="icon">🎫</span><span>Ticket</span></a></li>
+        <li><a href="/admin/users.html"><span class="icon">👥</span><span>Người dùng</span></a></li>
+        <li><a href="/admin/reports.html" class="active"><span class="icon">📊</span><span>Báo cáo</span></a></li>
+        <li><a href="/admin/notifications.html"><span class="icon">🔔</span><span>Thông báo</span></a></li>
+    </ul>
+    <div class="user-box">
+        <div class="avatar" id="avBox">AD</div>
+        <div>
+            <div class="user-name" id="uName">Admin</div>
+            <div class="user-role">Quản trị viên</div>
+        </div>
+    </div>
+</aside>
+
+<main class="main">
+    <header class="header">
+        <h2>Báo cáo & Thống kê</h2>
+        <div class="header-right">
+            <button class="notif-btn" onclick="location.href='/admin/notifications.html'" title="Thông báo">🔔<span class="notif-badge" style="display:none">0</span></button>
+            <button class="btn btn-secondary btn-sm" onclick="logout()">Đăng xuất</button>
+        </div>
+    </header>
+    <div class="content">
+        <!-- Summary stats -->
+        <div class="stats" id="statsRow"></div>
+
+        <div class="report-grid">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Ticket theo tháng (6 tháng gần nhất)</h3>
+                </div>
+                <div class="chart-wrap" id="chart">
+                    <p style="color:#94a3b8;font-size:13.5px">Đang tải biểu đồ...</p>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h3>Thống kê tổng quan</h3>
+                </div>
+                <div class="stat-list" id="statList"></div>
+            </div>
+        </div>
+
+        <!-- Technician performance -->
+        <div class="card">
+            <div class="card-header">
+                <h3>Hiệu suất kỹ thuật viên</h3>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Kỹ thuật viên</th>
+                            <th>Đang xử lý</th>
+                            <th>Hoàn thành</th>
+                            <th>Tỷ lệ xử lý</th>
+                        </tr>
+                    </thead>
+                    <tbody id="techTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>window.AI_WIDGET_ROLE = 'admin';</script>
+<script src="/shared.js"></script>
+<script src="/ai-widget.js"></script>
+<script>
+(async () => {
+    const u = await checkAuth('admin'); if (!u) return;
+    document.getElementById('uName').textContent = u.full_name;
+    document.getElementById('avBox').textContent = u.full_name.split(' ').slice(-1)[0][0];
+    loadNotifCount();
+
+    // Stats summary
+    const s = await fetch('/api/tickets/stats').then(r => r.json());
+    if (s.success) {
+        const d = s.data;
+        document.getElementById('statsRow').innerHTML = `
+            <div class="stat-card"><div><h3>${d.total || 0}</h3><p>Tổng ticket</p></div><div class="stat-icon si-blue">🎫</div></div>
+            <div class="stat-card"><div><h3>${d.new_count || 0}</h3><p>Mới tạo</p></div><div class="stat-icon si-orange">🆕</div></div>
+            <div class="stat-card"><div><h3>${d.processing || 0}</h3><p>Đang xử lý</p></div><div class="stat-icon si-purple">🔧</div></div>
+            <div class="stat-card"><div><h3>${d.done || 0}</h3><p>Đã giải quyết</p></div><div class="stat-icon si-green">✅</div></div>`;
+        const rate = d.total > 0 ? Math.round((d.done / d.total) * 100) : 0;
+        document.getElementById('statList').innerHTML = `
+            <div class="row"><span>Tổng ticket</span><b>${d.total || 0}</b></div>
+            <div class="row"><span>Đang xử lý</span><b>${d.processing || 0}</b></div>
+            <div class="row"><span>Chờ phản hồi</span><b>${d.waiting || 0}</b></div>
+            <div class="row"><span>Quá hạn</span><b style="color:#dc2626">${d.overdue || 0}</b></div>
+            <div class="row"><span>Tỷ lệ hoàn thành</span><b style="color:#16a34a">${rate}%</b></div>`;
+    }
+
+    // Chart by month
+    const m = await fetch('/api/reports/by-month').then(r => r.json()).catch(() => ({ success: false }));
+    const chartEl = document.getElementById('chart');
+    if (m.success && m.data.length) {
+        const max = Math.max(...m.data.map(x => x.total), 1);
+        chartEl.innerHTML = m.data.map(r => {
+            const h = Math.max(Math.round((r.total / max) * 200), 10);
+            return `<div class="bar-col"><div class="bar" style="height:${h}px"><span class="bar-val">${r.total}</span><span>${r.month}</span></div></div>`;
+        }).join('');
+    } else {
+        chartEl.innerHTML = '<p style="color:#94a3b8;font-size:13.5px">Chưa có dữ liệu thống kê tháng</p>';
+    }
+
+    // Technician performance
+    const techs = await fetch('/api/technicians').then(r => r.json());
+    const tb = document.getElementById('techTable');
+    if (techs.success && techs.data.length) {
+        tb.innerHTML = techs.data.map(t => {
+            const total = (t.tickets_processing || 0) + (t.tickets_done || 0);
+            const rate = total > 0 ? Math.round((t.tickets_done / total) * 100) : 0;
+            return `<tr>
+                <td><b>${t.full_name}</b><br><small style="color:#94a3b8">${t.email}</small></td>
+                <td><span class="badge b-processing">${t.tickets_processing || 0}</span></td>
+                <td><span class="badge b-done">${t.tickets_done || 0}</span></td>
+                <td>
+                    <div style="display:flex;align-items:center;gap:10px">
+                        <div style="flex:1;background:#f1f5f9;border-radius:20px;height:7px;overflow:hidden">
+                            <div style="width:${rate}%;background:linear-gradient(90deg,#4f46e5,#38bdf8);border-radius:20px;height:7px;transition:width 0.8s ease"></div>
+                        </div>
+                        <span style="font-size:12.5px;font-weight:700;color:#475569">${rate}%</span>
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+    } else {
+        tb.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:#94a3b8">Không có dữ liệu kỹ thuật viên</td></tr>';
+    }
+})();
+</script>
+</body>
+</html>
